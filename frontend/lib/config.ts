@@ -1,26 +1,55 @@
 // Centralized environment configuration (PRD §22: keep ICE configuration centralized).
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+export const DEFAULT_PRODUCTION_API_BASE_URL =
+  "https://meeting-platform-production-9505.up.railway.app";
+export const DEFAULT_PRODUCTION_WS_BASE_URL =
+  "wss://meeting-platform-production-9505.up.railway.app";
 
-function resolveWsBaseUrl(): string {
+export function getApiBaseUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isLocalhost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+    if (!isLocalhost) {
+      if (!envUrl || envUrl.includes("localhost") || envUrl.includes("127.0.0.1")) {
+        return DEFAULT_PRODUCTION_API_BASE_URL;
+      }
+      return envUrl.replace(/\/+$/, "");
+    }
+  }
+  if (envUrl && envUrl.trim() !== "") {
+    return envUrl.replace(/\/+$/, "");
+  }
+  return "http://localhost:8000";
+}
+
+export function getWsBaseUrl(): string {
   const customWs = process.env.NEXT_PUBLIC_WS_BASE_URL;
-  if (customWs) {
-    if (customWs.startsWith("http://")) return customWs.replace(/^http:\/\//, "ws://");
-    if (customWs.startsWith("https://")) return customWs.replace(/^https:\/\//, "wss://");
-    return customWs;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isLocalhost = host === "localhost" || host === "127.0.0.1" || host === "::1";
+    if (!isLocalhost) {
+      if (!customWs || customWs.includes("localhost") || customWs.includes("127.0.0.1")) {
+        return DEFAULT_PRODUCTION_WS_BASE_URL;
+      }
+      if (customWs.startsWith("http://")) return customWs.replace(/^http:\/\//, "ws://").replace(/\/+$/, "");
+      if (customWs.startsWith("https://")) return customWs.replace(/^https:\/\//, "wss://").replace(/\/+$/, "");
+      return customWs.replace(/\/+$/, "");
+    }
   }
-  if (API_BASE_URL) {
-    if (API_BASE_URL.startsWith("https://")) return API_BASE_URL.replace(/^https:\/\//, "wss://");
-    if (API_BASE_URL.startsWith("http://")) return API_BASE_URL.replace(/^http:\/\//, "ws://");
+  if (customWs && customWs.trim() !== "") {
+    if (customWs.startsWith("http://")) return customWs.replace(/^http:\/\//, "ws://").replace(/\/+$/, "");
+    if (customWs.startsWith("https://")) return customWs.replace(/^https:\/\//, "wss://").replace(/\/+$/, "");
+    return customWs.replace(/\/+$/, "");
   }
-  if (typeof window !== "undefined" && window.location.protocol === "https:") {
-    return `wss://${window.location.host}`;
-  }
+  const apiBase = getApiBaseUrl();
+  if (apiBase.startsWith("https://")) return apiBase.replace(/^https:\/\//, "wss://");
+  if (apiBase.startsWith("http://")) return apiBase.replace(/^http:\/\//, "ws://");
   return "ws://localhost:8000";
 }
 
-export const WS_BASE_URL = resolveWsBaseUrl();
+export const API_BASE_URL = getApiBaseUrl();
+export const WS_BASE_URL = getWsBaseUrl();
 
 export const STUN_SERVER =
   process.env.NEXT_PUBLIC_STUN_SERVER ?? "stun:stun.l.google.com:19302";

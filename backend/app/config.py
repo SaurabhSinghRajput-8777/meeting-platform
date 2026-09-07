@@ -15,7 +15,11 @@ class Settings(BaseSettings):
 
     # Anchored to the backend directory so the DB location does not depend on CWD.
     database_url: str = f"sqlite:///{(BACKEND_DIR / 'scaler.db').as_posix()}"
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "https://meeting-platform-production-9505.up.railway.app,"
+        "https://scaler-meet.vercel.app"
+    )
     stun_server: str = "stun:stun.l.google.com:19302"
     turn_server: str | None = None
     turn_username: str | None = None

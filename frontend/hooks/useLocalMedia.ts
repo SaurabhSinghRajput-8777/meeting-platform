@@ -76,39 +76,71 @@ export function useLocalMedia(): LocalMediaApi {
   }, []);
 
   const toggleMic = useCallback(async () => {
-    const track = localStreamRef.current?.getAudioTracks()[0];
-    if (track) {
-      track.enabled = !track.enabled;
-      setMicEnabled(track.enabled);
+    const liveTrack = localStreamRef.current
+      ?.getAudioTracks()
+      .find((t) => t.readyState === "live");
+    if (liveTrack) {
+      liveTrack.enabled = !liveTrack.enabled;
+      setMicEnabled(liveTrack.enabled);
       return;
     }
-    // No audio track yet (joined muted / denied): acquire one on demand.
+    // No live audio track yet (joined muted, unprompted on mobile, or track ended):
+    // Acquire a new audio track with user gesture.
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       const newTrack = stream.getAudioTracks()[0];
-      // A new stream object so consumers (effects) see the track addition.
-      const combined = new MediaStream([...(localStreamRef.current?.getTracks() ?? []), newTrack]);
+      if (!newTrack) {
+        setMediaError("mic-denied");
+        return;
+      }
+      newTrack.enabled = true;
+      const currentLiveTracks = (localStreamRef.current?.getTracks() ?? []).filter(
+        (t) => t.kind !== "audio" && t.readyState === "live",
+      );
+      const combined = new MediaStream([...currentLiveTracks, newTrack]);
       localStreamRef.current = combined;
       setLocalStream(combined);
       setMicEnabled(true);
-    } catch {
+      setMediaError(null);
+    } catch (err) {
+      console.warn("Could not acquire microphone track:", err);
       setMediaError("mic-denied");
     }
   }, []);
 
   const toggleCamera = useCallback(async () => {
-    const track = localStreamRef.current?.getVideoTracks()[0];
-    if (track) {
-      track.enabled = !track.enabled;
-      setCameraEnabled(track.enabled);
+    const liveTrack = localStreamRef.current
+      ?.getVideoTracks()
+      .find((t) => t.readyState === "live");
+    if (liveTrack) {
+      liveTrack.enabled = !liveTrack.enabled;
+      setCameraEnabled(liveTrack.enabled);
       return;
     }
-    // No video track yet: acquire one on demand (the meeting hook reacts to
-    // the new stream and renegotiates with the peers).
+    // No live video track yet: acquire one on demand.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       const newTrack = stream.getVideoTracks()[0];
-      const combined = new MediaStream([...(localStreamRef.current?.getTracks() ?? []), newTrack]);
+      if (!newTrack) {
+        setMediaError("camera-denied");
+        return;
+      }
+      newTrack.enabled = true;
+      const currentLiveTracks = (localStreamRef.current?.getTracks() ?? []).filter(
+        (t) => t.kind !== "video" && t.readyState === "live",
+      );
+      const combined = new MediaStream([...currentLiveTracks, newTrack]);
       localStreamRef.current = combined;
       setLocalStream(combined);
       setCameraEnabled(true);
@@ -119,8 +151,10 @@ export function useLocalMedia(): LocalMediaApi {
   }, []);
 
   const forceMute = useCallback(() => {
-    const track = localStreamRef.current?.getAudioTracks()[0];
-    if (track) track.enabled = false;
+    const tracks = localStreamRef.current?.getAudioTracks() ?? [];
+    for (const track of tracks) {
+      track.enabled = false;
+    }
     setMicEnabled(false);
   }, []);
 

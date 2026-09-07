@@ -166,3 +166,54 @@ test("mobile meeting controls are visible and accessible on small screens", asyn
 
   await context.close();
 });
+
+test("mobile unmute toggles microphone and synchronizes state with remote peers", async ({
+  browser,
+  request,
+}) => {
+  const createResponse = await request.post(`${API}/api/v1/rooms/instant`, {
+    data: { title: "Mobile Unmute Test" },
+  });
+  expect(createResponse.ok()).toBeTruthy();
+  const room = await createResponse.json();
+
+  // 1. Desktop context (host)
+  const desktopContext = await browser.newContext();
+  const desktopPage = await desktopContext.newPage();
+  await joinMeeting(desktopPage, room.room_code, "Demo User");
+
+  // 2. Mobile context (simulating mobile device)
+  const mobileContext = await browser.newContext({
+    viewport: { width: 375, height: 667 },
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+  });
+  const mobilePage = await mobileContext.newPage();
+  await joinMeeting(mobilePage, room.room_code, "Mobile User");
+
+  // Both should see each other
+  await expect(desktopPage.locator("[data-tile]")).toHaveCount(2, { timeout: 30_000 });
+  await expect(mobilePage.locator("[data-tile]")).toHaveCount(2, { timeout: 30_000 });
+
+  // Mobile user mutes microphone
+  const mobileMicBtn = mobilePage.getByRole("button", { name: "Mute" });
+  await mobileMicBtn.click();
+  await expect(mobilePage.getByRole("button", { name: "Unmute" })).toBeVisible();
+
+  // Mobile user taps "Unmute" - verifies audio track and UI toggle
+  const mobileUnmuteBtn = mobilePage.getByRole("button", { name: "Unmute" });
+  await mobileUnmuteBtn.click();
+  await expect(mobilePage.getByRole("button", { name: "Mute" })).toBeVisible();
+
+  // Mobile user taps "Mute" again
+  await mobilePage.getByRole("button", { name: "Mute" }).click();
+  await expect(mobilePage.getByRole("button", { name: "Unmute" })).toBeVisible();
+
+  // Host ends meeting
+  await desktopPage.getByRole("button", { name: "End meeting" }).first().click();
+  await expect(desktopPage).toHaveURL(/localhost:3000\/?$|notice/, { timeout: 30_000 });
+  await expect(mobilePage).toHaveURL(/localhost:3000\/?$|notice/, { timeout: 30_000 });
+
+  await desktopContext.close();
+  await mobileContext.close();
+});

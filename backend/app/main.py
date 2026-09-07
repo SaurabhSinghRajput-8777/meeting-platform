@@ -34,6 +34,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
+    allow_origin_regex=r"^https:\/\/([a-zA-Z0-9_-]+\.)*(vercel\.app|railway\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,6 +46,7 @@ app.include_router(room_routes.router, prefix=f"{api_prefix}/rooms", tags=["room
 app.include_router(signaling_routes.router)
 
 
+@app.get("/health", response_model=HealthResponse, tags=["system"], include_in_schema=False)
 @app.get(f"{api_prefix}/health", response_model=HealthResponse, tags=["system"])
 def health():
     return HealthResponse(status="ok", app=settings.app_name)

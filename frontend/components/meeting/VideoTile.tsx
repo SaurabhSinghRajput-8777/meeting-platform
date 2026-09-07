@@ -88,8 +88,7 @@ export default function VideoTile({
       <video
         ref={videoRef}
         autoPlay
-        playsInline
-        muted /* audio is played through dedicated hidden audio elements */
+        muted={isSelf}
         className={`h-full w-full ${isScreenSharing ? "object-contain" : "object-cover"} ${
           isSelf && !isScreenSharing ? "-scale-x-100" : ""
         }`}

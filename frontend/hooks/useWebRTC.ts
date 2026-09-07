@@ -335,13 +335,39 @@ export function useWebRTC(options: UseWebRTCOptions): WebRTCMeshApi {
   const syncLocalTracks = useCallback((stream: MediaStream | null) => {
     if (!stream) return;
     for (const [peerId, pc] of peersRef.current) {
-      const sent = new Set(pc.getSenders().map((sender) => sender.track));
       for (const track of stream.getTracks()) {
-        if (sent.has(track)) continue;
-        pc.addTrack(track, stream);
-        if (track.kind === "video") {
-          const sender = pc.getSenders().find((s) => s.track === track);
-          if (sender) videoSendersRef.current.set(peerId, sender);
+        if (track.readyState !== "live") continue;
+
+        // Check if an RTCRtpSender already exists for this track kind
+        const existingSender = pc.getSenders().find((s) => {
+          if (s.track === track) return true;
+          if (s.track && s.track.kind === track.kind) return true;
+          return false;
+        });
+
+        if (existingSender) {
+          if (existingSender.track !== track) {
+            existingSender.replaceTrack(track).catch((err) => {
+              console.warn(`replaceTrack (${track.kind}) failed for peer ${peerId}`, err);
+            });
+          }
+          if (track.kind === "video") {
+            videoSendersRef.current.set(peerId, existingSender);
+          }
+        } else {
+          // No sender for this track kind yet: addTrack and trigger renegotiation
+          try {
+            pc.addTrack(track, stream);
+            if (track.kind === "video") {
+              const sender = pc.getSenders().find((s) => s.track === track);
+              if (sender) videoSendersRef.current.set(peerId, sender);
+            }
+            if (pc.onnegotiationneeded && pc.signalingState === "stable") {
+              pc.onnegotiationneeded(new Event("negotiationneeded"));
+            }
+          } catch (err) {
+            console.error(`pc.addTrack failed for peer ${peerId}`, err);
+          }
         }
       }
     }

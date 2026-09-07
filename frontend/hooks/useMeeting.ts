@@ -280,7 +280,6 @@ export function useMeeting({ room, identity, displayName, media }: UseMeetingPar
   const { micEnabled, cameraEnabled, isScreenSharing, localStream, screenStream } = media;
 
   useEffect(() => {
-    if (status !== "connected") return;
     setParticipants((prev) =>
       prev.map((p) =>
         p.is_self
@@ -288,12 +287,14 @@ export function useMeeting({ room, identity, displayName, media }: UseMeetingPar
           : p,
       ),
     );
-    sendMessage({
-      type: "media-state",
-      is_muted: !micEnabled,
-      is_video_off: !cameraEnabled,
-      is_screen_sharing: isScreenSharing,
-    });
+    if (status === "connected") {
+      sendMessage({
+        type: "media-state",
+        is_muted: !micEnabled,
+        is_video_off: !cameraEnabled,
+        is_screen_sharing: isScreenSharing,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [micEnabled, cameraEnabled, isScreenSharing, status]);
 
@@ -335,13 +336,42 @@ export function useMeeting({ room, identity, displayName, media }: UseMeetingPar
   // Actions
   // -----------------------------------------------------------------------
 
-  const toggleMic = useCallback(() => {
-    void mediaRef.current.toggleMic();
-  }, []);
+  const toggleMic = useCallback(async () => {
+    await mediaRef.current.toggleMic();
+    const isMuted = !mediaRef.current.micEnabled;
+    setParticipants((prev) =>
+      prev.map((p) => (p.is_self ? { ...p, is_muted: isMuted } : p)),
+    );
+    if (statusRef.current === "connected") {
+      sendMessage({
+        type: "media-state",
+        is_muted: isMuted,
+        is_video_off: !mediaRef.current.cameraEnabled,
+        is_screen_sharing: mediaRef.current.isScreenSharing,
+      });
+      rtcRef.current.syncLocalTracks(mediaRef.current.localStream);
+    }
+  }, [sendMessage]);
 
-  const toggleCamera = useCallback(() => {
-    void mediaRef.current.toggleCamera();
-  }, []);
+  const toggleCamera = useCallback(async () => {
+    await mediaRef.current.toggleCamera();
+    const isVideoOff = !mediaRef.current.cameraEnabled;
+    setParticipants((prev) =>
+      prev.map((p) => (p.is_self ? { ...p, is_video_off: isVideoOff } : p)),
+    );
+    if (statusRef.current === "connected") {
+      sendMessage({
+        type: "media-state",
+        is_muted: !mediaRef.current.micEnabled,
+        is_video_off: isVideoOff,
+        is_screen_sharing: mediaRef.current.isScreenSharing,
+      });
+      rtcRef.current.syncLocalTracks(mediaRef.current.localStream);
+      const cameraTrack =
+        mediaRef.current.localStream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
+      rtcRef.current.replaceOutgoingVideoTrack(cameraTrack, mediaRef.current.localStream);
+    }
+  }, [sendMessage]);
 
   const toggleScreenShare = useCallback(() => {
     if (mediaRef.current.isScreenSharing) {
