@@ -104,6 +104,12 @@ test("three participants connect in a mesh, chat, host controls and screen share
     });
   });
 
+  await test.step("host mutes all participants", async () => {
+    await host.getByRole("button", { name: "Mute all" }).click();
+    await expect(alice.getByRole("button", { name: "Unmute" })).toBeVisible({ timeout: 15_000 });
+    await expect(bob.getByRole("button", { name: "Unmute" })).toBeVisible({ timeout: 15_000 });
+  });
+
   await test.step("screen sharing reaches remote participants", async () => {
     await host.getByRole("button", { name: "Share screen" }).click();
     // The sharer's tile is labeled on remote pages via media-state

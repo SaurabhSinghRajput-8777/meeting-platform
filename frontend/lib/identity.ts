@@ -10,20 +10,26 @@ export interface StoredIdentity {
 export function getStoredIdentity(): StoredIdentity | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.sessionStorage.getItem(STORAGE_KEY) ||
+      window.localStorage.getItem(STORAGE_KEY);
     return raw ? (JSON.parse(raw) as StoredIdentity) : null;
   } catch {
     return null;
   }
 }
 
-export function storeIdentity(identity: StoredIdentity): void {
+export function storeIdentity(identity: StoredIdentity, sessionOnly = false): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
+  window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
+  if (!sessionOnly) {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
+  }
 }
 
 export function clearIdentity(): void {
   if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(STORAGE_KEY);
   window.localStorage.removeItem(STORAGE_KEY);
 }
 

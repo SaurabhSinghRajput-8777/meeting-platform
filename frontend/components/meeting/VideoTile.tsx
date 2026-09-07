@@ -60,8 +60,10 @@ export default function VideoTile({
 
   return (
     <div
-      className={`relative flex min-h-0 items-center justify-center overflow-hidden rounded-xl bg-surface-2 transition ${
-        isSpeaking ? "ring-2 ring-success" : ""
+      className={`group relative flex min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-[#18181c] border border-white/[0.06] transition-all duration-200 ${
+        isSpeaking
+          ? "ring-[2.5px] ring-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.3)] z-10"
+          : "hover:border-white/10"
       }`}
       data-tile={displayName}
       data-self={isSelf}
@@ -75,27 +77,52 @@ export default function VideoTile({
           isSelf && !isScreenSharing ? "-scale-x-100" : ""
         }`}
       />
+
+      {/* Avatar fallback when video is stopped/unavailable */}
       {!showVideo && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          <Avatar name={displayName} size={compact ? "sm" : "lg"} />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#18181c]">
+          <Avatar name={displayName} size={compact ? "md" : "xl"} />
+          {!compact && (
+            <span className="text-xs font-medium text-zinc-400">
+              {displayName}
+            </span>
+          )}
         </div>
       )}
 
-      {/* Name + status bar */}
-      <div className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/70 to-transparent px-2.5 py-2">
-        {isMuted && <MicOff size={compact ? 12 : 14} className="shrink-0 text-danger" />}
-        {isScreenSharing && <MonitorUp size={compact ? 12 : 14} className="shrink-0 text-accent" />}
-        {isHost && <Crown size={compact ? 12 : 14} className="shrink-0 text-warning" />}
+      {/* Screen sharing pill indicator */}
+      {isScreenSharing && (
+        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-md bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-2.5 py-1 text-[11px] font-medium text-emerald-400 shadow-md">
+          <MonitorUp size={13} />
+          <span>Sharing screen</span>
+        </div>
+      )}
+
+      {/* Floating Bottom-Left Zoom-style Name Tag */}
+      <div className="absolute bottom-2.5 left-2.5 flex max-w-[85%] items-center gap-1.5 rounded-md bg-black/60 backdrop-blur-md px-2.5 py-1 text-xs font-medium text-white shadow-md border border-white/10">
+        {isMuted && (
+          <span title="Muted" className="flex items-center">
+            <MicOff
+              size={compact ? 12 : 13}
+              className="shrink-0 text-red-500"
+            />
+          </span>
+        )}
+        {isHost && (
+          <span title="Host" className="flex items-center">
+            <Crown
+              size={compact ? 11 : 12}
+              className="shrink-0 text-amber-400"
+            />
+          </span>
+        )}
         <span
-          className={`truncate font-medium text-white drop-shadow ${compact ? "text-xs" : "text-sm"}`}
+          className={`truncate font-medium text-white/95 ${
+            compact ? "text-[11px]" : "text-xs"
+          }`}
         >
           {nameLabel}
         </span>
-        {isScreenSharing && (
-          <span className="ml-auto hidden rounded bg-accent/25 px-1.5 py-0.5 text-[10px] font-medium text-accent sm:block">
-            Sharing screen
-          </span>
-        )}
       </div>
     </div>
   );

@@ -337,12 +337,17 @@ async def _handle_host_command(room_code: str, session: PeerSession, message: WS
         return
 
     if message.command == "mute-all":
-        for peer_id in connection_manager.peer_ids(room_code):
-            target = connection_manager.get_session(room_code, peer_id)
-            if target is not None and not target.is_host:
-                await connection_manager.send_to_peer(
-                    room_code, peer_id, {"type": "host-command", "command": "mute-all", "from_host": True}
-                )
+        with SessionLocal() as db:
+            for peer_id in connection_manager.peer_ids(room_code):
+                if peer_id == session.peer_id:
+                    continue
+                target = connection_manager.get_session(room_code, peer_id)
+                if target is not None:
+                    participants_repo.update_media_state(db, target.peer_id, is_muted=True)
+                    target.is_muted = True
+                    await connection_manager.send_to_peer(
+                        room_code, peer_id, {"type": "host-command", "command": "mute-all", "from_host": True}
+                    )
         return
 
     if message.command == "remove":

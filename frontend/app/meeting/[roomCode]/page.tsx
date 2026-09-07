@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Video } from "lucide-react";
 import { api, ApiError } from "@/services/api";
-import { resolveIdentity } from "@/lib/identity";
+import { resolveIdentity, storeIdentity } from "@/lib/identity";
 import { useLocalMedia } from "@/hooks/useLocalMedia";
 import Lobby from "@/components/lobby/Lobby";
 import MeetingRoom from "@/components/meeting/MeetingRoom";
@@ -69,13 +69,16 @@ export default function MeetingPage() {
       // Mock-user mode: every browser starts as the same default user. To keep
       // host authorization meaningful, a browser joining a room it does not
       // host gets a distinct guest identity (created once, then persisted in
-      // localStorage). The room's host always keeps their creating identity.
+      // localStorage/sessionStorage). If the user changes their display name,
+      // they get a dedicated guest identity for that name.
       const isRoomHost = identity.id === room.host.id;
-      const needsGuestIdentity = !isRoomHost && (identity.is_default || trimmed !== identity.name);
+      const changedName = Boolean(trimmed) && trimmed !== identity.name;
+      const needsGuestIdentity = (!isRoomHost && identity.is_default) || changedName;
       let joinIdentity = identity;
       if (needsGuestIdentity) {
         joinIdentity = await api.createGuest(trimmed || identity.name);
         setIdentity(joinIdentity);
+        storeIdentity({ user_id: joinIdentity.id, name: joinIdentity.name }, true);
       }
       const finalName = trimmed || joinIdentity.name;
       setDisplayName(finalName);

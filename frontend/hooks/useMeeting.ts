@@ -361,14 +361,23 @@ export function useMeeting({ room, identity, displayName, media }: UseMeetingPar
   );
 
   const hostMute = useCallback(
-    (peerId: string) => sendMessage({ type: "host-command", command: "mute", target_peer_id: peerId }),
-    [sendMessage],
+    (peerId: string) => {
+      sendMessage({ type: "host-command", command: "mute", target_peer_id: peerId });
+      setParticipants((prev) =>
+        prev.map((p) => (p.peer_id === peerId ? { ...p, is_muted: true } : p)),
+      );
+      toast("Participant muted");
+    },
+    [sendMessage, toast],
   );
 
-  const hostMuteAll = useCallback(
-    () => sendMessage({ type: "host-command", command: "mute-all" }),
-    [sendMessage],
-  );
+  const hostMuteAll = useCallback(() => {
+    sendMessage({ type: "host-command", command: "mute-all" });
+    setParticipants((prev) =>
+      prev.map((p) => (p.is_self ? p : { ...p, is_muted: true })),
+    );
+    toast("Muted all participants");
+  }, [sendMessage, toast]);
 
   const hostRemove = useCallback(
     (peerId: string) => sendMessage({ type: "host-command", command: "remove", target_peer_id: peerId }),

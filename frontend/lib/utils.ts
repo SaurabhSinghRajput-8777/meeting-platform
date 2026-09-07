@@ -8,6 +8,25 @@ export function parseUtcDate(iso: string): Date {
   return new Date(/Z$|[+\-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`);
 }
 
+const AVATAR_GRADIENTS = [
+  "from-blue-600 to-indigo-700",
+  "from-emerald-600 to-teal-700",
+  "from-purple-600 to-pink-700",
+  "from-amber-600 to-orange-700",
+  "from-rose-600 to-red-700",
+  "from-cyan-600 to-blue-700",
+  "from-violet-600 to-purple-700",
+];
+
+export function nameGradient(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_GRADIENTS.length;
+  return AVATAR_GRADIENTS[index];
+}
+
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";

@@ -2,6 +2,7 @@
 host commands, meeting-ended broadcast and disconnect cleanup."""
 
 from tests.conftest import create_instant_room, make_guest, wait_for, ws_url
+from app.repositories import participants as participants_repo
 
 HOST_USER = "usr_default_host"
 
@@ -195,7 +196,7 @@ def test_chat_broadcast_persistence_and_history(client, db):
         assert [item["message"] for item in history["messages"]] == ["Hello everyone"]
 
 
-def test_host_commands_require_host(client):
+def test_host_commands_require_host(client, db):
     room = create_instant_room(client)
     guest = make_guest(client, "Alice")
 
@@ -231,6 +232,35 @@ def test_host_commands_require_host(client):
         received = ws_guest.receive_json()
         assert received["type"] == "host-command"
         assert received["command"] == "mute-all"
+
+        # Verify DB reflects muted state
+        p = participants_repo.get_by_peer_id(db, "peer-b")
+        assert p is not None
+        assert p.is_muted is True
+
+
+def test_mute_all_mutes_all_other_peers_under_same_user(client, db):
+    room = create_instant_room(client)
+
+    with client.websocket_connect(
+        ws_url(room["room_code"], "peer-tab-1", HOST_USER)
+    ) as ws_1:
+        ws_1.receive_json()  # welcome
+
+        with client.websocket_connect(
+            ws_url(room["room_code"], "peer-tab-2", HOST_USER)
+        ) as ws_2:
+            ws_1.receive_json()  # peer-joined
+            ws_2.receive_json()  # welcome
+
+            # Host in tab 1 issues mute-all
+            ws_1.send_json({"type": "host-command", "command": "mute-all"})
+
+            # Tab 2 must receive mute-all command
+            received = ws_2.receive_json()
+            assert received["type"] == "host-command"
+            assert received["command"] == "mute-all"
+
 
 
 def test_peer_left_on_disconnect(client, db):
