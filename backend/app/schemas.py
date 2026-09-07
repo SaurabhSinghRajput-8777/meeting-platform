@@ -79,3 +79,14 @@ class LeaveResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     app: str
+
+
+class IceServerOut(BaseModel):
+    urls: list[str] | str
+    username: str | None = None
+    credential: str | None = None
+
+
+class IceConfigResponse(BaseModel):
+    ice_servers: list[IceServerOut]
+

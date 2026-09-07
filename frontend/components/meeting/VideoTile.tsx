@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MicOff, MonitorUp, Crown } from "lucide-react";
+import { MicOff, MonitorUp, Crown, Pin } from "lucide-react";
 import Avatar from "@/components/common/Avatar";
 
 export interface VideoTileProps {
@@ -14,6 +14,9 @@ export interface VideoTileProps {
   isHost: boolean;
   isSpeaking: boolean;
   compact?: boolean;
+  isPinned?: boolean;
+  onPin?: () => void;
+  onClick?: () => void;
 }
 
 export default function VideoTile({
@@ -26,6 +29,9 @@ export default function VideoTile({
   isHost,
   isSpeaking,
   compact = false,
+  isPinned = false,
+  onPin,
+  onClick,
 }: VideoTileProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [, setTrackVersion] = useState<number>(0);
@@ -60,14 +66,25 @@ export default function VideoTile({
 
   return (
     <div
+      onClick={onClick}
       className={`group relative flex min-h-0 items-center justify-center overflow-hidden rounded-2xl bg-[#18181c] border border-white/[0.06] transition-all duration-200 ${
-        isSpeaking
-          ? "ring-[2.5px] ring-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.3)] z-10"
-          : "hover:border-white/10"
+        onClick ? "cursor-pointer" : ""
+      } ${
+        isPinned
+          ? "ring-2 ring-blue-500 shadow-[0_0_24px_rgba(59,130,246,0.3)] z-10"
+          : isSpeaking
+            ? "ring-[2.5px] ring-emerald-500 shadow-[0_0_24px_rgba(16,185,129,0.3)] z-10"
+            : "hover:border-white/10"
       }`}
       data-tile={displayName}
       data-self={isSelf}
     >
+      {isPinned && (
+        <div className="absolute left-3 top-3 z-20 flex items-center gap-1 rounded-md bg-blue-600/80 px-2 py-0.5 text-[10px] font-medium text-white shadow backdrop-blur-md">
+          <Pin size={11} className="fill-current" />
+          <span>Pinned</span>
+        </div>
+      )}
       <video
         ref={videoRef}
         autoPlay
@@ -96,6 +113,25 @@ export default function VideoTile({
           <MonitorUp size={13} />
           <span>Sharing screen</span>
         </div>
+      )}
+
+      {/* Pin button / indicator */}
+      {(isPinned || onPin) && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPin?.();
+          }}
+          className={`absolute left-2.5 top-2.5 z-10 flex items-center justify-center rounded-md p-1.5 transition ${
+            isPinned
+              ? "bg-accent text-white shadow-md"
+              : "bg-black/50 text-white/70 opacity-0 group-hover:opacity-100 hover:bg-black/80 hover:text-white"
+          }`}
+          title={isPinned ? "Unpin video" : "Pin video"}
+        >
+          <Pin size={compact ? 12 : 14} className={isPinned ? "fill-current" : ""} />
+        </button>
       )}
 
       {/* Floating Bottom-Left Zoom-style Name Tag */}

@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     database_url: str = f"sqlite:///{(BACKEND_DIR / 'scaler.db').as_posix()}"
     cors_origins: str = "http://localhost:3000"
     stun_server: str = "stun:stun.l.google.com:19302"
+    turn_server: str | None = None
+    turn_username: str | None = None
+    turn_credential: str | None = None
+    ice_servers_json: str | None = None
 
     # Optional Clerk bonus authentication (backend verification of Clerk session JWTs).
     clerk_secret_key: str | None = None

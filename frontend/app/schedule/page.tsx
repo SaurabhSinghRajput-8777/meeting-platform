@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CalendarPlus, CheckCircle2, Copy } from "lucide-react";
 import { api, ApiError } from "@/services/api";
+import { resolveIdentity, storeIdentity } from "@/lib/identity";
 import { formatDateTime, formatDuration, localInputToUtcIso } from "@/lib/utils";
 import type { RoomDetails } from "@/types";
 
@@ -54,6 +55,15 @@ export default function SchedulePage() {
 
     setSubmitting(true);
     try {
+      let hostUser = await resolveIdentity(api);
+      if (hostUser.is_default) {
+        try {
+          hostUser = await api.createGuest(hostUser.name || "Demo User");
+          storeIdentity({ user_id: hostUser.id, name: hostUser.name });
+        } catch {
+          // fallback
+        }
+      }
       const room = await api.scheduleMeeting({
         title: title.trim(),
         description: description.trim() || undefined,
@@ -61,6 +71,9 @@ export default function SchedulePage() {
         duration_minutes: duration,
         passcode: usePasscode ? passcode : undefined,
       });
+      if (typeof window !== "undefined" && hostUser) {
+        window.sessionStorage.setItem(`scaler.host.${room.room_code}`, hostUser.id);
+      }
       setScheduled(room);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not schedule the meeting.");

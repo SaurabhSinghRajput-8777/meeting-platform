@@ -162,13 +162,42 @@ export function useWebRTC(options: UseWebRTCOptions): WebRTCMeshApi {
         syncPeerIds();
       };
 
+      pc.onicecandidateerror = (event: RTCPeerConnectionIceErrorEvent) => {
+        console.warn(`ICE candidate error for peer ${peerId}:`, event.errorText, event.url, event.errorCode);
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        if (pc.iceConnectionState === "failed") {
+          const attempts = (restartsRef.current.get(peerId) ?? 0) + 1;
+          restartsRef.current.set(peerId, attempts);
+          if (attempts <= 2) {
+            try {
+              pc.restartIce();
+              if (pc.signalingState === "stable") {
+                pc.onnegotiationneeded?.(new Event("negotiationneeded"));
+              }
+            } catch (e) {
+              console.warn("ICE restart failed", e);
+            }
+          }
+        }
+      };
+
       pc.onconnectionstatechange = () => {
         setConnectionStates((prev) => ({ ...prev, [peerId]: pc.connectionState }));
         if (pc.connectionState === "failed") {
-          // One ICE restart attempt before giving up on the peer.
           const attempts = (restartsRef.current.get(peerId) ?? 0) + 1;
           restartsRef.current.set(peerId, attempts);
-          if (attempts <= 1) pc.restartIce();
+          if (attempts <= 2) {
+            try {
+              pc.restartIce();
+              if (pc.signalingState === "stable") {
+                pc.onnegotiationneeded?.(new Event("negotiationneeded"));
+              }
+            } catch (e) {
+              console.warn("ICE restart failed", e);
+            }
+          }
         }
       };
 

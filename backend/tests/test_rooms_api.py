@@ -250,3 +250,19 @@ def test_leave_room(client):
     response = client.post(f"/api/v1/rooms/{room['room_code']}/leave", json={})
     assert response.status_code == 200
     assert response.json()["ok"] is True
+
+
+def test_ice_config_endpoint(client):
+    response = client.get("/api/v1/config/ice")
+    assert response.status_code == 200
+    data = response.json()
+    assert "ice_servers" in data
+    assert len(data["ice_servers"]) >= 1
+    urls = []
+    for s in data["ice_servers"]:
+        if isinstance(s["urls"], list):
+            urls.extend(s["urls"])
+        else:
+            urls.append(s["urls"])
+    assert any("stun:" in u for u in urls)
+

@@ -66,19 +66,32 @@ export default function MeetingPage() {
     setJoinError(null);
     try {
       const trimmed = options.displayName.trim();
-      // Mock-user mode: every browser starts as the same default user. To keep
-      // host authorization meaningful, a browser joining a room it does not
-      // host gets a distinct guest identity (created once, then persisted in
-      // localStorage/sessionStorage). If the user changes their display name,
-      // they get a dedicated guest identity for that name.
-      const isRoomHost = identity.id === room.host.id;
-      const changedName = Boolean(trimmed) && trimmed !== identity.name;
-      const needsGuestIdentity = (!isRoomHost && identity.is_default) || changedName;
+      // Determine if current browser is genuinely the room's host:
+      // 1. If user's ID matches room.host.id:
+      //    - If non-default user (e.g. Clerk or dedicated host user created on New Meeting): host!
+      //    - If default user: only host if this browser session created this room.
+      const isCreatorSession =
+        typeof window !== "undefined" &&
+        Boolean(window.sessionStorage.getItem(`scaler.host.${room.room_code}`));
+
+      const isDefaultHostMatching =
+        identity.id === room.host.id &&
+        Boolean(identity.is_default) &&
+        (!trimmed || trimmed === room.host.name || isCreatorSession);
+
+      const isRoomHost =
+        (identity.id === room.host.id && !identity.is_default) ||
+        isDefaultHostMatching ||
+        isCreatorSession;
+
       let joinIdentity = identity;
-      if (needsGuestIdentity) {
-        joinIdentity = await api.createGuest(trimmed || identity.name);
-        setIdentity(joinIdentity);
-        storeIdentity({ user_id: joinIdentity.id, name: joinIdentity.name }, true);
+      if (!isRoomHost) {
+        // A participant joining an existing room they do not host gets a dedicated guest identity
+        if (identity.is_default || (trimmed && trimmed !== identity.name)) {
+          joinIdentity = await api.createGuest(trimmed || "Guest");
+          setIdentity(joinIdentity);
+          storeIdentity({ user_id: joinIdentity.id, name: joinIdentity.name }, true);
+        }
       }
       const finalName = trimmed || joinIdentity.name;
       setDisplayName(finalName);

@@ -47,7 +47,12 @@ export default function MeetingRoom({ room, identity, displayName, media }: Meet
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-[#121214] text-white">
       {/* Zoom-style top header */}
-      <MeetingHeader room={room} meeting={meeting} />
+      <MeetingHeader
+        room={room}
+        meeting={meeting}
+        onLeave={() => void handleLeave()}
+        onEnd={() => void handleEnd()}
+      />
 
       <div className="relative flex min-h-0 flex-1">
         {/* Video area */}

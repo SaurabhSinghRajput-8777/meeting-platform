@@ -64,10 +64,15 @@ export function useActiveSpeaker(entries: SpeakerStreamEntry[]): string | null {
       console.warn("Active speaker detection unavailable", error);
     }
 
-    const SPEAKING_THRESHOLD = 0.06;
+    const SPEAKING_THRESHOLD = 0.05;
+    const HOLD_TIME_MS = 1500;
+    let currentSpeaker: string | null = null;
+    let lastSpokeTime = 0;
+
     const interval = window.setInterval(() => {
       let loudestId: string | null = null;
       let loudestLevel = 0;
+
       for (const [id, { analyser, data }] of analysers) {
         analyser.getByteFrequencyData(data);
         let sum = 0;
@@ -78,8 +83,17 @@ export function useActiveSpeaker(entries: SpeakerStreamEntry[]): string | null {
           loudestId = id;
         }
       }
-      setActiveSpeakerId(loudestLevel >= SPEAKING_THRESHOLD ? loudestId : null);
-    }, 300);
+
+      const now = Date.now();
+      if (loudestLevel >= SPEAKING_THRESHOLD && loudestId) {
+        currentSpeaker = loudestId;
+        lastSpokeTime = now;
+        setActiveSpeakerId(loudestId);
+      } else if (currentSpeaker && now - lastSpokeTime > HOLD_TIME_MS) {
+        currentSpeaker = null;
+        setActiveSpeakerId(null);
+      }
+    }, 200);
 
     return () => {
       window.clearInterval(interval);

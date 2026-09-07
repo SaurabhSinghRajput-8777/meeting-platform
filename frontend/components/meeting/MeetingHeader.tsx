@@ -8,8 +8,10 @@ import {
   LayoutGrid,
   Maximize2,
   Minimize2,
+  PhoneOff,
   Presentation,
   ShieldCheck,
+  Square,
   X,
 } from "lucide-react";
 import type { RoomDetails } from "@/types";
@@ -18,14 +20,18 @@ import type { MeetingApi } from "@/hooks/useMeeting";
 export interface MeetingHeaderProps {
   room: RoomDetails;
   meeting: MeetingApi;
+  onLeave?: () => void;
+  onEnd?: () => void;
 }
 
-export default function MeetingHeader({ room, meeting }: MeetingHeaderProps) {
+export default function MeetingHeader({ room, meeting, onLeave, onEnd }: MeetingHeaderProps) {
   const [showInfo, setShowInfo] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const isHost = meeting.participants.some((p) => p.is_self && p.is_host);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -206,6 +212,31 @@ export default function MeetingHeader({ room, meeting }: MeetingHeaderProps) {
         >
           {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
         </button>
+
+        {/* Compact Mobile-Only End / Leave Shortcut */}
+        {isHost ? (
+          <button
+            type="button"
+            onClick={onEnd}
+            className="flex sm:hidden h-8 items-center gap-1 rounded-lg bg-red-600 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:bg-red-800"
+            title="End meeting for all"
+            aria-label="End meeting"
+          >
+            <Square size={11} className="fill-current" />
+            <span>End</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onLeave}
+            className="flex sm:hidden h-8 items-center gap-1 rounded-lg bg-red-600 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:bg-red-800"
+            title="Leave meeting"
+            aria-label="Leave meeting"
+          >
+            <PhoneOff size={12} />
+            <span>Leave</span>
+          </button>
+        )}
       </div>
     </header>
   );

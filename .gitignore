@@ -1,34 +1,61 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 .venv/
 venv/
+ENV/
 *.db
 *.sqlite3
 .pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 
-# Node
+# Node & Next.js
 node_modules/
 .next/
 out/
+build/
+dist/
 *.tsbuildinfo
 next-env.d.ts
+.turbo/
 
-# Environment / secrets
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & secrets
 .env
 .env.local
 .env.*.local
+*.env
+backend/.env
+frontend/.env.local
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 
-# Test artifacts
+# Test & Playwright artifacts
 test-results/
 playwright-report/
+blob-report/
+.playwright/
 coverage/
 
-# OS / editor
+# OS & Editors
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Docs
-docs/

@@ -93,4 +93,6 @@ export const api = {
   getUpcoming: () => request<{ rooms: RoomDetails[] }>("/api/v1/rooms/upcoming"),
 
   getRecent: () => request<{ rooms: RoomDetails[] }>("/api/v1/rooms/recent"),
+
+  getIceConfig: () => request<{ ice_servers: RTCIceServer[] }>("/api/v1/config/ice"),
 };

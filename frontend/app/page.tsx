@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Avatar from "@/components/common/Avatar";
 import { api, ApiError } from "@/services/api";
-import { resolveIdentity } from "@/lib/identity";
+import { resolveIdentity, storeIdentity } from "@/lib/identity";
 import { formatDateTime, statusClass, statusLabel } from "@/lib/utils";
 import type { AppUser, RoomDetails } from "@/types";
 
@@ -83,7 +83,20 @@ export default function DashboardPage() {
   const handleNewMeeting = async () => {
     setCreating(true);
     try {
+      let hostUser = identity;
+      if (!hostUser || hostUser.is_default) {
+        try {
+          hostUser = await api.createGuest(hostUser?.name || "Demo User");
+          storeIdentity({ user_id: hostUser.id, name: hostUser.name });
+          setIdentity(hostUser);
+        } catch {
+          // fallback to current identity
+        }
+      }
       const room = await api.createInstantMeeting("Instant Meeting");
+      if (typeof window !== "undefined" && hostUser) {
+        window.sessionStorage.setItem(`scaler.host.${room.room_code}`, hostUser.id);
+      }
       router.push(`/meeting/${room.room_code}`);
     } catch (error) {
       setLoadError(error instanceof ApiError ? error.message : "Could not create the meeting.");

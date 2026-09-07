@@ -18,6 +18,7 @@ import type { MeetingApi } from "@/hooks/useMeeting";
 
 interface ToolbarButtonProps {
   label: string;
+  ariaLabel?: string;
   active?: boolean;
   isMutedOrOff?: boolean;
   isGreenAction?: boolean;
@@ -29,6 +30,7 @@ interface ToolbarButtonProps {
 
 function ToolbarItem({
   label,
+  ariaLabel,
   active = false,
   isMutedOrOff = false,
   isGreenAction = false,
@@ -37,13 +39,14 @@ function ToolbarItem({
   onClick,
   children,
 }: ToolbarButtonProps) {
+  const accessibleName = ariaLabel ?? label;
   return (
     <button
       type="button"
       onClick={onClick}
-      title={label}
-      aria-label={label}
-      className={`group relative flex h-13 min-w-[56px] flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1 text-[11px] font-medium transition-all sm:min-w-[64px] sm:px-3 ${
+      title={accessibleName}
+      aria-label={accessibleName}
+      className={`group relative flex h-12 sm:h-13 min-w-[46px] sm:min-w-[60px] flex-col items-center justify-center gap-0.5 sm:gap-1 rounded-xl px-1.5 py-1 text-[10px] sm:text-[11px] font-medium transition-all sm:px-3 shrink-0 ${
         active
           ? "bg-accent/20 text-accent ring-1 ring-accent/30"
           : isMutedOrOff
@@ -57,13 +60,13 @@ function ToolbarItem({
         {children}
         {badge !== undefined && badge > 0 && (
           <span
-            className={`absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full ${badgeColor} px-1 text-[10px] font-bold text-white shadow-sm ring-1 ring-bg`}
+            className={`absolute -right-2 -top-1 sm:-right-2.5 sm:-top-1.5 flex h-3.5 sm:h-4 min-w-3.5 sm:min-w-4 items-center justify-center rounded-full ${badgeColor} px-1 text-[9px] sm:text-[10px] font-bold text-white shadow-sm ring-1 ring-bg`}
           >
             {badge > 99 ? "99+" : badge}
           </span>
         )}
       </div>
-      <span className="truncate tracking-tight leading-none text-zinc-400 group-hover:text-zinc-200">
+      <span className="truncate max-w-[50px] sm:max-w-[70px] tracking-tight leading-none text-zinc-400 group-hover:text-zinc-200">
         {label}
       </span>
     </button>
@@ -85,9 +88,9 @@ export default function Toolbar({
   const screenSharing = meeting.participants.some((p) => p.is_self && p.is_screen_sharing);
 
   return (
-    <footer className="relative z-20 flex h-16 w-full shrink-0 select-none items-center justify-between border-t border-line/60 bg-[#14161a]/95 px-3 backdrop-blur-xl sm:px-6">
+    <footer className="relative z-20 flex min-h-[4rem] h-16 w-full shrink-0 select-none items-center justify-between border-t border-line/60 bg-[#14161a]/95 px-2 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl sm:px-6">
       {/* Left: Audio & Video Controls */}
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
         <ToolbarItem
           label={muted ? "Unmute" : "Mute"}
           isMutedOrOff={muted}
@@ -95,10 +98,10 @@ export default function Toolbar({
         >
           {muted ? (
             <div className="relative">
-              <MicOff size={19} className="text-red-500" />
+              <MicOff size={18} className="text-red-500 sm:w-[19px] sm:h-[19px]" />
             </div>
           ) : (
-            <Mic size={19} className="text-zinc-200" />
+            <Mic size={18} className="text-zinc-200 sm:w-[19px] sm:h-[19px]" />
           )}
         </ToolbarItem>
 
@@ -108,17 +111,18 @@ export default function Toolbar({
           onClick={meeting.toggleCamera}
         >
           {cameraOff ? (
-            <VideoOff size={19} className="text-red-500" />
+            <VideoOff size={18} className="text-red-500 sm:w-[19px] sm:h-[19px]" />
           ) : (
-            <Video size={19} className="text-zinc-200" />
+            <Video size={18} className="text-zinc-200 sm:w-[19px] sm:h-[19px]" />
           )}
         </ToolbarItem>
       </div>
 
       {/* Center: Meeting Actions (Participants, Chat, Share Screen, View) */}
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex min-w-0 max-w-[calc(100vw-170px)] sm:max-w-none items-center gap-0.5 overflow-x-auto no-scrollbar sm:gap-1.5">
         <ToolbarItem
           label="Participants"
+          ariaLabel="Participants"
           active={meeting.activePanel === "participants"}
           badge={meeting.participants.length}
           badgeColor="bg-surface-3 text-zinc-200"
@@ -126,7 +130,7 @@ export default function Toolbar({
             meeting.setActivePanel(meeting.activePanel === "participants" ? null : "participants")
           }
         >
-          <Users size={19} />
+          <Users size={18} className="sm:w-[19px] sm:h-[19px]" />
         </ToolbarItem>
 
         <ToolbarItem
@@ -138,37 +142,42 @@ export default function Toolbar({
             meeting.setActivePanel(meeting.activePanel === "chat" ? null : "chat")
           }
         >
-          <MessageSquare size={19} />
+          <MessageSquare size={18} className="sm:w-[19px] sm:h-[19px]" />
         </ToolbarItem>
 
         {/* Zoom's signature Green Share Screen Button */}
         <ToolbarItem
           label={screenSharing ? "Stop sharing" : "Share screen"}
+          ariaLabel={screenSharing ? "Stop sharing" : "Share screen"}
           active={screenSharing}
           isGreenAction={!screenSharing}
           onClick={meeting.toggleScreenShare}
         >
-          <MonitorUp size={19} className={screenSharing ? "text-danger" : "text-emerald-400"} />
+          <MonitorUp size={18} className={`${screenSharing ? "text-danger" : "text-emerald-400"} sm:w-[19px] sm:h-[19px]`} />
         </ToolbarItem>
 
         <ToolbarItem
-          label={meeting.view === "gallery" ? "Speaker view" : "Gallery view"}
+          label={meeting.view === "gallery" ? "Speaker" : "Gallery"}
           onClick={() => meeting.setView(meeting.view === "gallery" ? "speaker" : "gallery")}
         >
-          {meeting.view === "gallery" ? <Presentation size={19} /> : <LayoutGrid size={19} />}
+          {meeting.view === "gallery" ? (
+            <Presentation size={18} className="sm:w-[19px] sm:h-[19px]" />
+          ) : (
+            <LayoutGrid size={18} className="sm:w-[19px] sm:h-[19px]" />
+          )}
         </ToolbarItem>
       </div>
 
-      {/* Right: Red End / Leave Meeting Action */}
-      <div className="flex items-center gap-2">
+      {/* Right: Red End / Leave Meeting Action - ALWAYS VISIBLE, NEVER CLIPPED */}
+      <div className="flex shrink-0 items-center pl-1 sm:pl-2">
         {isHost ? (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               type="button"
               onClick={onLeave}
               title="Leave meeting"
               aria-label="Leave"
-              className="rounded-lg bg-surface-2 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-surface-3 hover:text-white"
+              className="hidden sm:inline-flex rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-zinc-300 transition hover:bg-surface-3 hover:text-white"
             >
               Leave
             </button>
@@ -176,10 +185,10 @@ export default function Toolbar({
               type="button"
               onClick={onEnd}
               title="End meeting for all"
-              aria-label="End"
-              className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:bg-red-800"
+              aria-label="End meeting"
+              className="flex items-center gap-1 rounded-lg bg-red-600 px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:bg-red-800"
             >
-              <Square size={13} className="fill-current" />
+              <Square size={12} className="fill-current sm:w-[13px] sm:h-[13px]" />
               <span>End</span>
             </button>
           </div>
@@ -188,10 +197,10 @@ export default function Toolbar({
             type="button"
             onClick={onLeave}
             title="Leave meeting"
-            aria-label="Leave"
-            className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:bg-red-800"
+            aria-label="Leave meeting"
+            className="flex items-center gap-1 rounded-lg bg-red-600 px-2.5 sm:px-4 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700 active:bg-red-800"
           >
-            <PhoneOff size={14} />
+            <PhoneOff size={13} className="sm:w-[14px] sm:h-[14px]" />
             <span>Leave</span>
           </button>
         )}

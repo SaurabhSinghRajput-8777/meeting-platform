@@ -118,11 +118,51 @@ test("three participants connect in a mesh, chat, host controls and screen share
   });
 
   await test.step("host ends the meeting for everyone", async () => {
-    await host.getByRole("button", { name: "End" }).click();
+    await host.getByRole("button", { name: "End" }).first().click();
     await expect(host).toHaveURL(/localhost:3000\/?$|notice/, { timeout: 30_000 });
     await expect(alice).toHaveURL(/localhost:3000\/?$|notice/, { timeout: 30_000 });
     await expect(bob).toHaveURL(/localhost:3000\/?$|notice/, { timeout: 30_000 });
   });
+
+  await context.close();
+});
+
+test("mobile meeting controls are visible and accessible on small screens", async ({
+  browser,
+  request,
+}) => {
+  const createResponse = await request.post(`${API}/api/v1/rooms/instant`, {
+    data: { title: "Mobile View Meeting" },
+  });
+  expect(createResponse.ok()).toBeTruthy();
+  const room = await createResponse.json();
+
+  // Mobile viewport (iPhone SE/mini size: 375 x 667)
+  const context = await browser.newContext({
+    viewport: { width: 375, height: 667 },
+    userAgent:
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+  });
+  const page = await context.newPage();
+
+  await joinMeeting(page, room.room_code, "Demo User");
+
+  // Host should see End button visible on mobile
+  const endButton = page.getByRole("button", { name: "End meeting" }).first();
+  await expect(endButton).toBeVisible();
+
+  // Verify bottom toolbar is within viewport
+  const boundingBox = await endButton.boundingBox();
+  expect(boundingBox).not.toBeNull();
+  if (boundingBox) {
+    expect(boundingBox.x + boundingBox.width).toBeLessThanOrEqual(375);
+    expect(boundingBox.y + boundingBox.height).toBeLessThanOrEqual(667);
+  }
+
+  // Switch to speaker view on mobile and verify it renders
+  const speakerToggle = page.getByRole("button", { name: "Speaker", exact: true }).first();
+  await speakerToggle.click();
+  await expect(page.getByRole("button", { name: "Gallery", exact: true }).first()).toBeVisible();
 
   await context.close();
 });
