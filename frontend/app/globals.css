@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0b0d10;
+  --color-surface: #14171c;
+  --color-surface-2: #1b1f26;
+  --color-surface-3: #232833;
+  --color-line: #2a3038;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #2563eb;
+  --color-danger: #e5484d;
+  --color-danger-hover: #d93a3f;
+  --color-success: #30a46c;
+  --color-warning: #f5a524;
+  --color-muted: #8b949e;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+/* Thin dark scrollbars for panels and message lists */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 3px;
+}
